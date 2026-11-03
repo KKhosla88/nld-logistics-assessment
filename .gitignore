@@ -1,0 +1,19 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+
+# Environment files and local data
+.env
+.env.*
+!.env.example
+postgres-data/
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+
+# Local working artifacts
+tmp/
+*.log
