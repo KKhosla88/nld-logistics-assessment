@@ -40,6 +40,10 @@
   font-size: 0.875rem;
 }
 
+nav { align-items:center; display:flex; gap:1rem; }
+nav a { color:#fff; text-decoration:none; }
+nav button { background:transparent; border:1px solid #668096; border-radius:.4rem; color:#fff; cursor:pointer; padding:.45rem .7rem; }
+
 .app-content {
   margin: 0 auto;
   max-width: 72rem;

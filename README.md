@@ -1,6 +1,6 @@
 # NLD Logistics Assessment
 
-A full-stack logistics ordering application built with Angular, Express, TypeORM, and PostgreSQL. Phase 1 establishes the database schema, repeatable seed data, backend lifecycle, health checks, and Angular application shell.
+A full-stack logistics ordering application built with Angular, Express, TypeORM, and PostgreSQL. The current implementation includes the foundation, secure user registration/login, JWT authorization, and searchable product browsing.
 
 ## Architecture
 
@@ -104,6 +104,15 @@ docker run --rm \
 - Timestamps use `TIMESTAMPTZ`; application and API date handling will use UTC.
 - Indexes cover order ownership, status/date filtering, and order-item joins required by the assessment queries.
 
+## Current API
+
+- `POST /auth/register` — creates a `USER` with `VIEW` access. Body: `{ "email", "password" }`.
+- `POST /auth/login` — returns a JWT and the public user profile.
+- `GET /products?search=&page=1&limit=10` — authenticated, case-insensitive name/SKU search with pagination.
+- `GET /health` — verifies both API and database readiness.
+
+Public callers cannot choose their role or access. Although accepting a registration role literally would be simple, it would allow anyone to create an ADMIN account. Administrative provisioning and access changes should use a protected workflow or seed—not public registration. The API, not Angular guards, is the authoritative security boundary.
+
 ## Assessment decisions and assumptions
 
 The following choices will be finalized while authentication and ordering are implemented:
@@ -116,7 +125,7 @@ The following choices will be finalized while authentication and ordering are im
 
 ## Phase roadmap
 
-- Phase 1: foundation, schema, seed, backend lifecycle, Angular shell.
-- Phase 2: authentication, authorization, and product browsing.
+- Phase 1: foundation, schema, seed, backend lifecycle, Angular shell — complete.
+- Phase 2: authentication, authorization, and product browsing — complete.
 - Phase 3: transactional order creation, listing, cancellation, and concurrency tests.
 - Phase 4: complete Angular workflows, end-to-end verification, and submission polish.

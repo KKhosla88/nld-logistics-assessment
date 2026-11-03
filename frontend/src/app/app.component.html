@@ -4,19 +4,17 @@
       <span class="brand-mark" aria-hidden="true">NLD</span>
       <span>{{ title }}</span>
     </a>
-    <span class="phase-label">Assessment foundation</span>
+    <nav>
+      @if (auth.isAuthenticated()) {
+        <a routerLink="/products">Products</a>
+        <button type="button" (click)="logout()">Sign out</button>
+      } @else {
+        <a routerLink="/login">Sign in</a>
+      }
+    </nav>
   </header>
 
   <main class="app-content">
-    <section class="welcome" aria-labelledby="welcome-title">
-      <p class="eyebrow">Logistics ordering platform</p>
-      <h1 id="welcome-title">Foundation ready</h1>
-      <p>
-        The application shell is connected and ready for authentication, product browsing,
-        and transactional ordering workflows.
-      </p>
-    </section>
-
     <router-outlet />
   </main>
 </div>
