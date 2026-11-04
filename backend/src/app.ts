@@ -2,10 +2,12 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 
+import { adminRouter } from './admin/admin.routes';
 import { authRouter } from './auth/auth.routes';
 import { env } from './config/env';
 import { AppDataSource } from './database/data-source';
 import { errorHandler } from './middleware/error.middleware';
+import { orderRouter } from './orders/order.routes';
 import { productRouter } from './products/product.routes';
 import { HttpError } from './types/http-error';
 
@@ -17,7 +19,9 @@ app.use(cors({ origin: env.CORS_ORIGIN }));
 app.use(express.json({ limit: '1mb' }));
 
 app.use('/auth', authRouter);
+app.use('/admin', adminRouter);
 app.use('/products', productRouter);
+app.use('/orders', orderRouter);
 
 app.get('/health', async (_request, response, next) => {
   try {

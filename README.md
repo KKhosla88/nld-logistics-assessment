@@ -1,6 +1,6 @@
 # NLD Logistics Assessment
 
-A full-stack logistics ordering application built with Angular, Express, TypeORM, and PostgreSQL. The current implementation includes the foundation, secure user registration/login, JWT authorization, and searchable product browsing.
+A full-stack logistics ordering application built with Angular, Express, TypeORM, and PostgreSQL. It includes authentication, permissioned product browsing, transactional ordering, stock-safe cancellation, a signal-based cart, and order history.
 
 ## Architecture
 
@@ -65,6 +65,14 @@ PostgreSQL 17 (localhost:5432)
 
    The seed uses product SKU as its stable key, so it is safe to run repeatedly without creating duplicates.
 
+   Create or update a development ADMIN with credentials supplied only at execution time:
+
+   ```bash
+   ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD='a-long-development-password' npm run seed:admin
+   ```
+
+   The ADMIN can grant a registered user `CREATE` access with `PATCH /admin/users/:id/access`. The user should sign in again afterward because authorization claims are captured in the one-hour JWT.
+
 5. Start the API and Angular app in separate terminals:
 
    ```bash
@@ -109,23 +117,26 @@ docker run --rm \
 - `POST /auth/register` — creates a `USER` with `VIEW` access. Body: `{ "email", "password" }`.
 - `POST /auth/login` — returns a JWT and the public user profile.
 - `GET /products?search=&page=1&limit=10` — authenticated, case-insensitive name/SKU search with pagination.
+- `PATCH /admin/users/:id/access` — ADMIN-only; body `{ "access": "VIEW" | "CREATE" }`.
+- `POST /orders` — ADMIN or `USER + CREATE`; transactionally locks products, validates/deducts stock, and creates the order/items.
+- `GET /orders?status=&from=&to=&page=1&limit=10` — ADMIN sees all orders; USER sees only their own.
+- `POST /orders/:id/cancel` — ADMIN or owning `USER + CREATE`; restores stock exactly once in a transaction.
 - `GET /health` — verifies both API and database readiness.
 
 Public callers cannot choose their role or access. Although accepting a registration role literally would be simple, it would allow anyone to create an ADMIN account. Administrative provisioning and access changes should use a protected workflow or seed—not public registration. The API, not Angular guards, is the authoritative security boundary.
 
 ## Assessment decisions and assumptions
 
-The following choices will be finalized while authentication and ordering are implemented:
-
-- **Public ADMIN registration:** the PDF accepts a role during registration, but unrestricted public ADMIN creation is unsafe. The intended implementation will document whether literal assessment compatibility or protected/seeded ADMIN creation is chosen.
-- **USER access assignment:** registration must decide whether callers can select `VIEW`/`CREATE` or whether the backend assigns a safe default.
-- **Initial order status:** new orders will default to `PENDING`; no confirmation endpoint is required by the PDF.
-- **Cancellation authorization:** proposed rule is ADMIN, or the owning USER with `CREATE` access.
-- **Date filters:** timestamps are UTC. `from` will include the start instant and date-only `to` values will include the full final UTC day; exact API semantics will be documented with the endpoint.
+- **Public registration:** creates `USER + VIEW`; ADMIN creation is a controlled seed and access changes are ADMIN-only.
+- **Initial status:** new orders are `PENDING`; the assessment specifies no confirmation endpoint.
+- **Cancellation:** allowed for ADMIN or the owning `USER + CREATE`, and only from `PENDING`/`CONFIRMED`.
+- **Dates:** timestamps are UTC. A date-only `from` begins at `00:00:00.000Z`; a date-only `to` includes through `23:59:59.999Z`. Full timestamps must end in `Z`.
+- **Money:** backend calculations use integer cents; PostgreSQL persists exact `numeric(12,2)` values.
+- **Concurrency:** product and order rows use TypeORM pessimistic write locks inside transactions. Product locks are acquired in ascending ID order to reduce deadlock risk.
 
 ## Phase roadmap
 
 - Phase 1: foundation, schema, seed, backend lifecycle, Angular shell — complete.
 - Phase 2: authentication, authorization, and product browsing — complete.
-- Phase 3: transactional order creation, listing, cancellation, and concurrency tests.
+- Phase 3: transactional order creation/listing/cancellation, concurrency verification, cart, checkout, and order history — complete.
 - Phase 4: complete Angular workflows, end-to-end verification, and submission polish.
