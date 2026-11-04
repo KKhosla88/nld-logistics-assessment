@@ -89,7 +89,25 @@ cd backend
 npm run build
 npm test
 npm run migration:show
+npm run verify:concurrency
 ```
+
+`verify:concurrency` temporarily sets one seeded product to stock 1, submits two competing orders, submits two competing cancellations, asserts one success/one rejection for each pair, and restores all original data in `finally` cleanup.
+
+## Production containers
+
+The production stack builds minimized backend and Angular/Nginx images, runs migrations before API startup, keeps PostgreSQL internal, and serves the complete application at `http://localhost:8080`:
+
+```bash
+DATABASE_PASSWORD='replace-with-a-database-password' \
+JWT_SECRET='replace-with-at-least-32-random-characters' \
+PUBLIC_ORIGIN='http://localhost:8080' \
+docker-compose -f docker-compose.prod.yml up --build
+```
+
+Angular calls `/api`; Nginx proxies that path to Express. Browser routes fall back to `index.html`, allowing direct navigation to `/products`, `/orders`, and `/cart`.
+
+Production secrets must come from the deployment platform. Do not commit a production `.env` file.
 
 The Angular native macOS builder currently crashes on the development machine with an allocator error. The project builds successfully in Linux, so use the verified container path:
 
@@ -134,9 +152,33 @@ Public callers cannot choose their role or access. Although accepting a registra
 - **Money:** backend calculations use integer cents; PostgreSQL persists exact `numeric(12,2)` values.
 - **Concurrency:** product and order rows use TypeORM pessimistic write locks inside transactions. Product locks are acquired in ascending ID order to reduce deadlock risk.
 
+## Testing strategy
+
+- Unit tests cover money conversion, request validation, authentication, and access enforcement.
+- Supertest checks the Express health/error contract.
+- The database concurrency verifier exercises real TypeORM transactions and PostgreSQL row locks rather than mocking them.
+- TypeScript compilation and the Angular production build are required verification steps.
+- Production dependency audits are run with `npm audit --omit=dev` for both packages.
+
+## Reviewer walkthrough
+
+1. Register a user; it safely starts with `VIEW` access.
+2. Seed/login as ADMIN and grant that user `CREATE` through `PATCH /admin/users/:id/access`.
+3. Sign in again as the user so the new access appears in the JWT.
+4. Browse/search products, add products to the cart, and place an order.
+5. Observe stock deduction and the order in history.
+6. Cancel it and observe the stock restoration and `CANCELLED` state.
+
+## Known scope boundaries
+
+- No order-confirmation endpoint was requested, so created orders remain `PENDING` until cancelled.
+- JWT authorization claims are valid for one hour; users sign in again after an administrator changes access.
+- The cart is intentionally in-memory. Persisted carts, refresh tokens, email verification, password reset, audit logs, and full admin UI are sensible production extensions but outside the four-day assessment scope.
+- CI/CD and cloud-specific infrastructure are not included; the production Compose stack is the portable deployment reference.
+
 ## Phase roadmap
 
 - Phase 1: foundation, schema, seed, backend lifecycle, Angular shell — complete.
 - Phase 2: authentication, authorization, and product browsing — complete.
 - Phase 3: transactional order creation/listing/cancellation, concurrency verification, cart, checkout, and order history — complete.
-- Phase 4: complete Angular workflows, end-to-end verification, and submission polish.
+- Phase 4: automated concurrency verification, production containers, UX hardening, end-to-end verification, and submission documentation — complete.

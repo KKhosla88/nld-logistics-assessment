@@ -1,3 +1,4 @@
+import { CurrencyPipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -11,7 +12,7 @@ import type { Product, ProductPage } from './product.models';
 
 @Component({
   selector: 'app-product-list',
-  imports: [ReactiveFormsModule],
+  imports: [CurrencyPipe, ReactiveFormsModule],
   template: `
     <section class="catalog">
       <div><p class="eyebrow">Catalog</p><h1>Products</h1></div>
@@ -22,7 +23,7 @@ import type { Product, ProductPage } from './product.models';
       @else {
         <div class="grid">
           @for (product of products(); track product.id) {
-            <article><p class="sku">{{ product.sku }}</p><h2>{{ product.name }}</h2><p>{{ product.stockQty }} in stock</p><strong>{{ product.price }}</strong>@if(canCreate()){<button (click)="cart.add(product)" [disabled]="product.stockQty===0">Add to cart</button>}</article>
+            <article><p class="sku">{{ product.sku }}</p><h2>{{ product.name }}</h2><p>{{ product.stockQty }} in stock</p><strong>{{ +product.price | currency }}</strong>@if(canCreate()){<button (click)="cart.add(product)" [disabled]="product.stockQty===0">Add to cart</button>}</article>
           }
         </div>
         <p class="total">{{ total() }} products</p>

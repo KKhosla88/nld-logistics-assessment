@@ -8,7 +8,9 @@
       @if (auth.isAuthenticated()) {
         <a routerLink="/products">Products</a>
         <a routerLink="/orders">Orders</a>
-        <a routerLink="/cart">Cart ({{ cart.itemCount() }})</a>
+        @if (auth.user()?.role === 'ADMIN' || auth.user()?.access === 'CREATE') {
+          <a routerLink="/cart">Cart ({{ cart.itemCount() }})</a>
+        }
         <button type="button" (click)="logout()">Sign out</button>
       } @else {
         <a routerLink="/login">Sign in</a>

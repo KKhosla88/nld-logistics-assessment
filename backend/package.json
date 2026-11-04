@@ -17,7 +17,8 @@
     "migration:revert": "npm run build && npm run typeorm -- migration:revert",
     "migration:show": "npm run build && npm run typeorm -- migration:show",
     "seed": "tsx src/database/seeds/products.seed.ts",
-    "seed:admin": "tsx src/database/seeds/admin.seed.ts"
+    "seed:admin": "tsx src/database/seeds/admin.seed.ts",
+    "verify:concurrency": "tsx src/scripts/verify-concurrency.ts"
   },
   "keywords": [],
   "author": "",
