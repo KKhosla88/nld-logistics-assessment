@@ -4,14 +4,14 @@ import { OrderStatus } from '../database/entities/enums';
 export const createOrderSchema = z.object({
   body: z.object({
     items: z.array(z.object({
-      productId: z.number().int().positive(),
-      quantity: z.number().int().positive().max(10_000)
+      sku: z.string().trim().min(1).max(100),
+      qty: z.number().int().positive().max(10_000)
     }).strict()).min(1).max(100)
   }).strict().superRefine(({ items }, context) => {
-    const seen = new Set<number>();
+    const seen = new Set<string>();
     items.forEach((item, index) => {
-      if (seen.has(item.productId)) context.addIssue({ code: 'custom', message: 'Duplicate product IDs are not allowed', path: ['items', index, 'productId'] });
-      seen.add(item.productId);
+      if (seen.has(item.sku)) context.addIssue({ code: 'custom', message: 'Duplicate SKUs are not allowed', path: ['items', index, 'sku'] });
+      seen.add(item.sku);
     });
   })
 });

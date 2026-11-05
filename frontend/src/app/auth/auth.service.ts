@@ -26,7 +26,7 @@ export class AuthService {
     );
   }
 
-  register(credentials: { email: string; password: string }) {
+  register(credentials: { email: string; password: string; role: 'ADMIN' | 'USER' }) {
     return this.http.post<{ user: User }>(`${this.apiBaseUrl}/auth/register`, credentials);
   }
 

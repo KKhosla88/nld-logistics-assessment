@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { In, type EntityManager, type SelectQueryBuilder } from 'typeorm';
+import { type EntityManager, type SelectQueryBuilder } from 'typeorm';
 
 import { AppDataSource } from '../database/data-source';
 import { OrderItem } from '../database/entities/order-item.entity';
@@ -10,7 +10,7 @@ import type { AuthenticatedUser } from '../types/authenticated-request';
 import { HttpError } from '../types/http-error';
 import { centsToDecimal, decimalToCents } from '../utils/money';
 
-export interface RequestedItem { productId: number; quantity: number; }
+export interface RequestedItem { sku: string; qty: number; }
 
 const lockProducts = async (manager: EntityManager, ids: number[]): Promise<Product[]> =>
   manager.getRepository(Product).createQueryBuilder('product')
@@ -19,18 +19,25 @@ const lockProducts = async (manager: EntityManager, ids: number[]): Promise<Prod
     .setLock('pessimistic_write')
     .getMany();
 
+const lockProductsBySku = async (manager: EntityManager, skus: string[]): Promise<Product[]> =>
+  manager.getRepository(Product).createQueryBuilder('product')
+    .where('product.sku IN (:...skus)', { skus: [...skus].sort() })
+    .orderBy('product.sku', 'ASC')
+    .setLock('pessimistic_write')
+    .getMany();
+
 export const createOrder = (user: AuthenticatedUser, requestedItems: RequestedItem[]): Promise<Order> =>
   AppDataSource.transaction(async (manager) => {
-    const products = await lockProducts(manager, requestedItems.map((item) => item.productId));
+    const products = await lockProductsBySku(manager, requestedItems.map((item) => item.sku));
     if (products.length !== requestedItems.length) throw new HttpError(404, 'One or more products do not exist');
 
-    const productsById = new Map(products.map((product) => [product.id, product]));
+    const productsBySku = new Map(products.map((product) => [product.sku, product]));
     let totalCents = 0;
     for (const item of requestedItems) {
-      const product = productsById.get(item.productId)!;
-      if (product.stockQty < item.quantity) throw new HttpError(409, `Insufficient stock for ${product.name}`);
-      product.stockQty -= item.quantity;
-      totalCents += decimalToCents(product.price) * item.quantity;
+      const product = productsBySku.get(item.sku)!;
+      if (product.stockQty < item.qty) throw new HttpError(409, `Insufficient stock for ${product.name}`);
+      product.stockQty -= item.qty;
+      totalCents += decimalToCents(product.price) * item.qty;
       if (!Number.isSafeInteger(totalCents)) throw new HttpError(400, 'Order total is too large');
     }
 
@@ -42,8 +49,8 @@ export const createOrder = (user: AuthenticatedUser, requestedItems: RequestedIt
       totalAmount: centsToDecimal(totalCents)
     }));
     order.items = await manager.getRepository(OrderItem).save(requestedItems.map((item) => {
-      const product = productsById.get(item.productId)!;
-      return manager.getRepository(OrderItem).create({ orderId: order.id, productId: product.id, quantity: item.quantity, unitPrice: product.price });
+      const product = productsBySku.get(item.sku)!;
+      return manager.getRepository(OrderItem).create({ orderId: order.id, productId: product.id, quantity: item.qty, unitPrice: product.price });
     }));
     return order;
   });

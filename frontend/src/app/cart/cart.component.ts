@@ -28,6 +28,6 @@ export class CartComponent {
   readonly cart = inject(CartService); private readonly http=inject(HttpClient); private readonly base=inject(API_BASE_URL); private readonly router=inject(Router);
   readonly loading=signal(false); readonly error=signal('');
   change(id:number,event:Event):void { this.cart.setQuantity(id, Number((event.target as HTMLInputElement).value)); }
-  checkout():void { this.loading.set(true);this.error.set('');this.http.post(`${this.base}/orders`,{items:this.cart.items().map(i=>({productId:i.product.id,quantity:i.quantity}))}).subscribe({next:()=>{this.cart.clear();void this.router.navigate(['/orders']);},error:(e:HttpErrorResponse)=>{this.error.set(e.error?.error?.message??'Unable to place order');this.loading.set(false);}}); }
+  checkout():void { this.loading.set(true);this.error.set('');this.http.post(`${this.base}/orders`,{items:this.cart.items().map(i=>({sku:i.product.sku,qty:i.quantity}))}).subscribe({next:()=>{this.cart.clear();void this.router.navigate(['/orders']);},error:(e:HttpErrorResponse)=>{this.error.set(e.error?.error?.message??'Unable to place order');this.loading.set(false);}}); }
 }
 

@@ -12,8 +12,34 @@ const updateAccessSchema = z.object({
   body: z.object({ access: z.nativeEnum(UserAccess) }).strict()
 });
 
+const listUsersSchema = z.object({
+  query: z.object({
+    search: z.string().trim().max(100).default(''),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20)
+  })
+});
+
 export const adminRouter = Router();
 adminRouter.use(authenticate, authorize({ roles: [UserRole.ADMIN] }));
+
+adminRouter.get('/users', validate(listUsersSchema), async (request, response, next) => {
+  try {
+    const { search, page, limit } = listUsersSchema.shape.query.parse(request.query);
+    const query = AppDataSource.getRepository(User).createQueryBuilder('user')
+      .select(['user.id', 'user.email', 'user.role', 'user.access', 'user.createdAt'])
+      .orderBy('user.createdAt', 'DESC')
+      .addOrderBy('user.id', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+    if (search) query.where('user.email ILIKE :search', { search: `%${search}%` });
+    const [users, total] = await query.getManyAndCount();
+    response.json({
+      data: users,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+    });
+  } catch (error) { next(error); }
+});
 
 adminRouter.patch('/users/:id/access', validate(updateAccessSchema), async (request, response, next) => {
   try {

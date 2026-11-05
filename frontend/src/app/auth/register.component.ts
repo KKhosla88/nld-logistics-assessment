@@ -14,6 +14,7 @@ import { AuthService } from './auth.service';
       <form [formGroup]="form" (ngSubmit)="submit()">
         <label>Email<input type="email" formControlName="email" autocomplete="email"></label>
         <label>Password<input type="password" formControlName="password" autocomplete="new-password"></label>
+        <label>Role<select formControlName="role"><option value="USER">User</option><option value="ADMIN">Admin</option></select></label>
         @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
         <button type="submit" [disabled]="form.invalid || loading()">{{ loading() ? 'Creating…' : 'Create account' }}</button>
       </form>
@@ -30,7 +31,8 @@ export class RegisterComponent {
   readonly error = signal('');
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(72)]]
+    password: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(72)]],
+    role: this.fb.nonNullable.control<'ADMIN' | 'USER'>('USER', Validators.required)
   });
 
   submit(): void {

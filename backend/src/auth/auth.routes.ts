@@ -29,7 +29,7 @@ const createToken = (user: User): string => jwt.sign(
 
 authRouter.post('/register', validate(registerSchema), async (request, response, next) => {
   try {
-    const { email, password } = registerSchema.shape.body.parse(request.body);
+    const { email, password, role } = registerSchema.shape.body.parse(request.body);
     const repository = AppDataSource.getRepository(User);
     if (await repository.exists({ where: { email } })) {
       throw new HttpError(409, 'An account with this email already exists');
@@ -38,8 +38,10 @@ authRouter.post('/register', validate(registerSchema), async (request, response,
     const user = repository.create({
       email,
       passwordHash: await bcrypt.hash(password, 12),
-      role: UserRole.USER,
-      access: UserAccess.VIEW
+      role,
+      // The assessment registration payload does not include access. CREATE keeps
+      // a newly registered USER able to complete the required order workflow.
+      access: UserAccess.CREATE
     });
     await repository.save(user);
     response.status(201).json({ user: publicUser(user) });

@@ -37,8 +37,8 @@ async function verify(): Promise<void> {
 
     const actor = { id: user.id, role: user.role, access: user.access };
     const creations = await Promise.allSettled([
-      createOrder(actor, [{ productId: product.id, quantity: 1 }]),
-      createOrder(actor, [{ productId: product.id, quantity: 1 }])
+      createOrder(actor, [{ sku: product.sku, qty: 1 }]),
+      createOrder(actor, [{ sku: product.sku, qty: 1 }])
     ]);
     const created = creations.filter((result): result is PromiseFulfilledResult<Order> => result.status === 'fulfilled');
     const rejected = creations.filter((result) => result.status === 'rejected');
